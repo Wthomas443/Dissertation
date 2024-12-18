@@ -5,7 +5,7 @@ import Spherical_harmonic_functions as sph
 
 r = 6371000
 nRowsRead = None
-df1 = pd.read_csv('c:/Users/wt057/Documents/University/Data/GlobalLandTemperaturesByCity.csv', delimiter=',', nrows = nRowsRead)
+df1 = pd.read_csv('c:/Users/wt057/Documents/University/Dissertation/Data/GlobalLandTemperaturesByCity.csv', delimiter=',', nrows = nRowsRead)
 df1.dataframeName = 'GlobalLandTemperaturesByCity.csv'
 
 
@@ -19,8 +19,9 @@ theta = filtered_df['Latitude']
 phi = filtered_df['Longitude']
 data = np.array(filtered_df['AverageTemperature'])
 max_data = max(data)
-#data = data/max_data
+data = data/max_data
 
+# Convert latitude and longitude to radians
 def convert_latitude(lat):
     if lat[-1] == 'N':
         return (90 - float(lat[:-1])) * np.pi / 180
@@ -41,15 +42,16 @@ def convert_longitude(long):
 
 phi = np.array([convert_longitude(long) for long in phi])
 
+# Set max degree, regularisation parameter and what norm is penalised
 n = len(data)
-max_degree = 30
+max_degree = 5
 regularization_parameter = 0.38
 grad = 0
-A = sph.design_matrix_vectorized(theta, phi, max_degree)
-coefficients = sph.Solve_LSQ(max_degree, data, A, regularization_parameter, grad)
 
-fold_error = np.zeros((10,100))
-for i in range(1):
+#Create plot to find optimum regulaarisation parameter
+num_folds = 1
+fold_error = np.zeros((num_folds,100))
+for i in range(num_folds):
     np.random.seed(i)
     test_idx = np.random.randint(0, n, int(0.2*n))
     test_theta = theta[test_idx]
@@ -66,6 +68,7 @@ for i in range(1):
         fitted_coefficients = sph.Solve_LSQ(max_degree, training_data, A_training, e, grad)
         error = np.linalg.norm(test_data- A_test @ fitted_coefficients)
         fold_error[i][idx] = error
+    print(fold_error)
     plt.plot(np.log10(reg_param), np.log10(fold_error[i]), label=f'Fold {i+1}')
     plt.xlabel('Regularization parameter $Log_{10}(\lambda)$', fontsize=16)
     plt.ylabel('Test error $Log_{10}||Sf - f||$', fontsize=16)
@@ -79,15 +82,32 @@ plt.show()
 
 print(f'The optimal value of e is {best_e} with a test error of {min_error}')
 
+# Split the data into training and test sets to fit the model on
+
+np.random.seed(0)
+test_idx = np.random.randint(0, n, int(0.2*n))
+test_theta = theta[test_idx]
+test_phi = phi[test_idx]
+test_data = data[test_idx]
+training_data = np.delete(data, test_idx)
+training_theta = np.delete(theta, test_idx)
+training_phi = np.delete(phi, test_idx)
+A_training = sph.design_matrix_vectorized(training_theta, training_phi, max_degree)
+A_test = sph.design_matrix_vectorized(test_theta, test_phi, max_degree)
+
+# Fit the model on the training data
+coefficients = sph.Solve_LSQ(max_degree, training_data, A_training, regularization_parameter, grad)
+
+#Calculate the errors to plot an L-curve
 errors = []
 norm = []
 for e in np.logspace(-6,-0,30):
-    fitted_coefficients = sph.Solve_LSQ(max_degree, data, A, e, grad)
+    fitted_coefficients = sph.Solve_LSQ(max_degree, training_data, A_training, e, grad)
     error = np.linalg.norm(training_data- A_training @ fitted_coefficients)
     errors.append(error)
-    norm.append(np.sum( sph.construct_L(max_degree, grad) @ fitted_coefficients**2))
+    norm.append(np.linalg.norm( sph.construct_L(max_degree, grad) @ fitted_coefficients))
 
-
+#Plot the data and the model on a sphere
 num_plot_points = 300
 theta_grid, phi_grid = np.meshgrid(
     np.linspace(0, np.pi, num_plot_points),
@@ -126,6 +146,8 @@ mappable.set_array(fitted_grid.real)
 fig.colorbar(mappable, ax=ax2, shrink=0.5, aspect=7)
 plt.show()
 
+#Plot the 'L-curve'
+
 fig = plt.figure(figsize=(14, 6))
 ax1 = fig.add_subplot(111)
 edge_colors = ['blue', 'green', 'red', 'purple', 'magenta', 'orange']
@@ -133,9 +155,9 @@ ax1.plot(np.log10(errors), np.log10(norm))
 
 e_values = [10e-6, 10e-5, 10e-4, 10e-3, 10e-2]
 for idx, e in enumerate(e_values):
-    fitted_coefficients = sph.Solve_LSQ(max_degree, data, A, e, grad)
+    fitted_coefficients = sph.Solve_LSQ(max_degree, training_data, A_training, e, grad)
     error = np.linalg.norm(training_data - A_training @ fitted_coefficients)
-    norm = np.sum(sph.construct_L(max_degree, grad) @ fitted_coefficients**2)
+    norm = np.linalg.norm(sph.construct_L(max_degree, grad) @ fitted_coefficients)
     ax1.scatter(np.log10(error), np.log10(norm), label=f'$\lambda$={e_values[idx]}', edgecolors=edge_colors[idx], facecolors='none', marker='o', s=100)
 ax1.set_xlabel('Residual norm $Log_{10}||Sf - f||$', fontsize=18)
 ax1.set_ylabel('Coefficients norm $Log_{10}||v||$', fontsize=18)

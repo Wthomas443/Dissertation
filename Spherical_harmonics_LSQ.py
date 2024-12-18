@@ -38,7 +38,7 @@ print(coefficients)
 print(f"Error: {error}")
 
 # Generate a grid of points on the sphere for visualization
-num_plot_points = 250
+num_plot_points = 100
 theta_grid, phi_grid = np.meshgrid(
     np.linspace(0, np.pi, num_plot_points),
     np.linspace(0, 2*np.pi, num_plot_points)
@@ -89,9 +89,9 @@ for j in max_degrees:
     error_degree = np.linalg.norm(true_function - A_new @ coefficients)
     errors_degree.append(error_degree)
 
-for i in np.logspace(-10, -3, 50):
+for i in np.logspace(-12, -4, 50):
         coefficients = sph.Solve_LSQ(max_degree, data, A, i, grad)
-        e_solutions.append(np.sum(sph.construct_L(max_degree, grad) @ coefficients**2))
+        e_solutions.append(np.linalg.norm(sph.construct_L(max_degree, grad) @ coefficients))
         errors_e.append(np.linalg.norm(true_function - A @ coefficients))
 
 fig = plt.figure(figsize=(14, 6))
@@ -108,12 +108,12 @@ ax2.plot(np.log10(errors_e), np.log10(e_solutions), label='Error vs Solution Nor
 
 #[ 10e-9, 10e-8, 10e-7, 10e-6, 10e-5, 10e-4, 10e-3, 10e-2]
 # Add points for specific regression parameters
-specific_params = [10e-8, 10e-7,  10e-6, 10e-5, ]
+specific_params = [10e-10, 10e-9, 10e-8, 10e-7,  10e-6, 10e-5 ]
 edge_colors = ['blue', 'green', 'red', 'purple', 'magenta', 'orange']
 for idx, param in enumerate(specific_params):
     coefficients = sph.Solve_LSQ(max_degree, data, A, param, grad)
     error_e = np.linalg.norm(true_function - A @ coefficients)
-    solution_norm = np.sum(sph.construct_L(max_degree, grad) @ coefficients**2)
+    solution_norm = np.linalg.norm(sph.construct_L(max_degree, grad) @ coefficients)
     ax2.scatter(np.log10(error_e), np.log10(solution_norm), label=f'$\lambda$={param}', edgecolor=edge_colors[idx % len(edge_colors)], facecolor='none', marker='o', s=100, linewidth=1.8)
 ax2.set_xlabel('Residual norm $Log_{10}||Sf - f||_2$', fontsize=18)
 ax2.set_ylabel('Coefficients norm $Log_{10}||v||_2$', fontsize=18)
