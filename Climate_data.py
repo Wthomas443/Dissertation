@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np 
 import pandas as pd
 import Spherical_harmonic_functions as sph
+from matplotlib import colors
 
 r = 6371000
 nRowsRead = None
@@ -18,8 +19,7 @@ filtered_df = df1[df1['dt'] == '2003-07-01']
 theta = filtered_df['Latitude']
 phi = filtered_df['Longitude']
 data = np.array(filtered_df['AverageTemperature'])
-max_data = max(data)
-data = data/max_data
+
 
 # Convert latitude and longitude to radians
 def convert_latitude(lat):
@@ -44,11 +44,11 @@ phi = np.array([convert_longitude(long) for long in phi])
 
 # Set max degree, regularisation parameter and what norm is penalised
 n = len(data)
-max_degree = 5
-regularization_parameter = 0.38
+max_degree = 16
+regularization_parameter = 0.0025
 grad = 0
 
-#Create plot to find optimum regulaarisation parameter
+#Create plot to find optimum regularisation parameter
 num_folds = 1
 fold_error = np.zeros((num_folds,100))
 for i in range(num_folds):
@@ -95,9 +95,6 @@ training_phi = np.delete(phi, test_idx)
 A_training = sph.design_matrix_vectorized(training_theta, training_phi, max_degree)
 A_test = sph.design_matrix_vectorized(test_theta, test_phi, max_degree)
 
-# Fit the model on the training data
-coefficients = sph.Solve_LSQ(max_degree, training_data, A_training, regularization_parameter, grad)
-
 #Calculate the errors to plot an L-curve
 errors = []
 norm = []
@@ -114,6 +111,9 @@ theta_grid, phi_grid = np.meshgrid(
     np.linspace(0, 2*np.pi, num_plot_points)
 )
 
+# Fit the model on the training data
+coefficients = sph.Solve_LSQ(max_degree, training_data, A_training, regularization_parameter, grad)
+
 # Compute the fitted values on the grid
 A_grid = sph.design_matrix_vectorized(theta_grid.flatten(), phi_grid.flatten(), max_degree)
 fitted_grid = (A_grid @ coefficients).reshape(phi_grid.shape)
@@ -127,22 +127,25 @@ z_grid = r * np.cos(theta_grid)
 # Plot the original and fitted data on the sphere
 fig = plt.figure()
 ax1 = fig.add_subplot(121, projection='3d')
-ax1.scatter(r * np.sin(theta) * np.cos(phi), r * np.sin(theta) * np.sin(phi), r * np.cos(theta), c=data, cmap='viridis')
+ax1.scatter(r * np.sin(theta) * np.cos(phi), r * np.sin(theta) * np.sin(phi), r * np.cos(theta), c=data/data.max(), cmap='viridis')
 ax1.set_xlabel('X')
 ax1.set_ylabel('Y')
 ax1.set_zlabel('Z')
+
 mappable = plt.cm.ScalarMappable(cmap='viridis')
-mappable.set_array(data.real)
+mappable.set_array(data)
+mappable.set_clim(0, 35)
 fig.colorbar(mappable, ax=ax1, shrink=0.5, aspect=7)
 
 ax2 = fig.add_subplot(122, projection='3d')
-ax2.plot_surface(x_grid, y_grid, z_grid, facecolors=plt.cm.viridis(fitted_grid.real), rstride=1, cstride=1, shade=False)
+ax2.plot_surface(x_grid, y_grid, z_grid, facecolors=plt.cm.viridis(fitted_grid.real/fitted_grid.real.max()), rstride=1, cstride=1, shade=False)
 ax2.set_xlabel('X')
 ax2.set_ylabel('Y')
 ax2.set_zlabel('Z')
 
 mappable = plt.cm.ScalarMappable(cmap='viridis')
 mappable.set_array(fitted_grid.real)
+mappable.set_clim(0, 35)
 fig.colorbar(mappable, ax=ax2, shrink=0.5, aspect=7)
 plt.show()
 

@@ -45,7 +45,7 @@ def Solve_LSQ(max_degree, data, A, e, grad):
 def plot_spherical_harmonics(x_grid, y_grid, z_grid, colourmap):
     fig = plt.figure(figsize=(14, 6))
     ax2 = fig.add_subplot(111, projection='3d')
-    ax2.plot_surface(x_grid, y_grid, z_grid, facecolors=plt.cm.viridis(colourmap), rstride=1, cstride=1, shade=False)
+    ax2.plot_surface(x_grid, y_grid, z_grid, facecolors=plt.cm.viridis(colourmap/colourmap.max()), rstride=1, cstride=1, shade=False)
     ax2.set_xlabel('X', fontsize=16)
     ax2.set_ylabel('Y', fontsize=16)
     ax2.set_zlabel('Z', fontsize=16)

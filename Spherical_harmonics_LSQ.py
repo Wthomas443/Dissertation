@@ -19,7 +19,7 @@ grad = 2
 #set random seed for reproducibility
 np.random.seed(6)
 # Generate the true coefficients
-true_coefficients = 0.3 * np.random.randn((function_max_degree + 1) ** 2) + 0.3j * np.random.randn((function_max_degree + 1) ** 2) + 0.2
+true_coefficients =  (np.random.randn((function_max_degree + 1) ** 2) + 1j * np.random.randn((function_max_degree + 1) ** 2)) + 0.4
 
 # Generate the true function and add noise
 true_function = sph.generate_sample_data_vectorized(theta, phi, function_max_degree, true_coefficients)
@@ -38,7 +38,7 @@ print(coefficients)
 print(f"Error: {error}")
 
 # Generate a grid of points on the sphere for visualization
-num_plot_points = 100
+num_plot_points = 250
 theta_grid, phi_grid = np.meshgrid(
     np.linspace(0, np.pi, num_plot_points),
     np.linspace(0, 2*np.pi, num_plot_points)
@@ -57,14 +57,14 @@ z_grid = np.cos(theta_grid)
 # Plot the original and fitted data on the sphere
 fig = plt.figure()
 ax1 = fig.add_subplot(121, projection='3d')
-ax1.scatter(np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta), c=data, cmap='viridis')
+ax1.scatter(np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta), c=data.real/data.real.max(), cmap='viridis')
 ax1.set_xlabel('X', fontsize=16)
 ax1.set_ylabel('Y', fontsize=16)
 ax1.set_zlabel('Z', fontsize=16)
 
 # Real function
 ax3 = fig.add_subplot(122, projection='3d')
-surf = ax3.plot_surface(x_grid, y_grid, z_grid, facecolors = plt.cm.viridis(function_grid.real), rstride=1, cstride=1, shade=False)
+surf = ax3.plot_surface(x_grid, y_grid, z_grid, facecolors = plt.cm.viridis(function_grid.real/function_grid.real.max()), rstride=1, cstride=1, shade=False)
 ax3.set_xlabel('X', fontsize=16)
 ax3.set_ylabel('Y', fontsize=16)
 ax3.set_zlabel('Z', fontsize=16)
