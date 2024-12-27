@@ -49,6 +49,10 @@ A_grid = sph.design_matrix_vectorized(theta_grid.flatten(), phi_grid.flatten(), 
 fitted_grid = np.dot(A_grid, coefficients).reshape(phi_grid.shape)
 function_grid = sph.generate_sample_data_vectorized(theta_grid.flatten(), phi_grid.flatten(), function_max_degree, true_coefficients).reshape(theta_grid.shape)
 
+# Normalize the grids and data to [0, 1] for color mapping
+function_grid_normalized = (function_grid.real - function_grid.real.min()) / (function_grid.real.max() - function_grid.real.min())
+data_normalized = (data.real - data.real.min()) / (data.real.max() - data.real.min())
+
 # Convert spherical coordinates to Cartesian coordinates for plotting
 x_grid = np.sin(theta_grid) * np.cos(phi_grid)
 y_grid = np.sin(theta_grid) * np.sin(phi_grid)
@@ -57,14 +61,14 @@ z_grid = np.cos(theta_grid)
 # Plot the original and fitted data on the sphere
 fig = plt.figure()
 ax1 = fig.add_subplot(121, projection='3d')
-ax1.scatter(np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta), c=data.real/data.real.max(), cmap='viridis')
+ax1.scatter(np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta), c = data_normalized, cmap='viridis')
 ax1.set_xlabel('X', fontsize=16)
 ax1.set_ylabel('Y', fontsize=16)
 ax1.set_zlabel('Z', fontsize=16)
 
 # Real function
 ax3 = fig.add_subplot(122, projection='3d')
-surf = ax3.plot_surface(x_grid, y_grid, z_grid, facecolors = plt.cm.viridis(function_grid.real/function_grid.real.max()), rstride=1, cstride=1, shade=False)
+surf = ax3.plot_surface(x_grid, y_grid, z_grid, facecolors = plt.cm.viridis(function_grid_normalized), rstride=1, cstride=1, shade=False)
 ax3.set_xlabel('X', fontsize=16)
 ax3.set_ylabel('Y', fontsize=16)
 ax3.set_zlabel('Z', fontsize=16)
@@ -119,4 +123,5 @@ ax2.set_xlabel('Residual norm $Log_{10}||Sf - f||_2$', fontsize=18)
 ax2.set_ylabel('Coefficients norm $Log_{10}||v||_2$', fontsize=18)
 ax2.legend(fontsize=16)
 ax2.grid(True)
+
 plt.show()

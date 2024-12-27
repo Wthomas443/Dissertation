@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np 
 import pandas as pd
 import Spherical_harmonic_functions as sph
-from matplotlib import colors
 
 r = 6371000
 nRowsRead = None
@@ -44,13 +43,13 @@ phi = np.array([convert_longitude(long) for long in phi])
 
 # Set max degree, regularisation parameter and what norm is penalised
 n = len(data)
-max_degree = 16
-regularization_parameter = 0.0025
-grad = 0
+max_degree = 18
+regularization_parameter = 4.341e-5
+grad = 2
 
 #Create plot to find optimum regularisation parameter
-num_folds = 1
-fold_error = np.zeros((num_folds,100))
+num_folds = 5
+fold_error = np.zeros((num_folds,150))
 for i in range(num_folds):
     np.random.seed(i)
     test_idx = np.random.randint(0, n, int(0.2*n))
@@ -63,12 +62,11 @@ for i in range(num_folds):
     A_training = sph.design_matrix_vectorized(training_theta, training_phi, max_degree)
     A_test = sph.design_matrix_vectorized(test_theta, test_phi, max_degree)
     reg_param = []
-    for idx, e in enumerate(np.logspace(-6,2,100)):
+    for idx, e in enumerate(np.logspace(-10,2,150)):
         reg_param.append(e)
         fitted_coefficients = sph.Solve_LSQ(max_degree, training_data, A_training, e, grad)
         error = np.linalg.norm(test_data- A_test @ fitted_coefficients)
         fold_error[i][idx] = error
-    print(fold_error)
     plt.plot(np.log10(reg_param), np.log10(fold_error[i]), label=f'Fold {i+1}')
     plt.xlabel('Regularization parameter $Log_{10}(\lambda)$', fontsize=16)
     plt.ylabel('Test error $Log_{10}||Sf - f||$', fontsize=16)
@@ -102,7 +100,7 @@ for e in np.logspace(-6,-0,30):
     fitted_coefficients = sph.Solve_LSQ(max_degree, training_data, A_training, e, grad)
     error = np.linalg.norm(training_data- A_training @ fitted_coefficients)
     errors.append(error)
-    norm.append(np.linalg.norm( sph.construct_L(max_degree, grad) @ fitted_coefficients))
+    norm.append(np.linalg.norm(sph.construct_L(max_degree, grad) @ fitted_coefficients))
 
 #Plot the data and the model on a sphere
 num_plot_points = 300
@@ -124,28 +122,30 @@ x_grid = r * np.sin(theta_grid) * np.cos(phi_grid)
 y_grid = r * np.sin(theta_grid) * np.sin(phi_grid)
 z_grid = r * np.cos(theta_grid)
 
+# Normalize the grids and data to [0, 1] for color mapping
+fitted_grid_normalized = (fitted_grid.real - fitted_grid.real.min()) / (fitted_grid.real.max() - fitted_grid.real.min())
+data_normalized = (data.real - data.real.min()) / (data.real.max() - data.real.min())
+
 # Plot the original and fitted data on the sphere
 fig = plt.figure()
 ax1 = fig.add_subplot(121, projection='3d')
-ax1.scatter(r * np.sin(theta) * np.cos(phi), r * np.sin(theta) * np.sin(phi), r * np.cos(theta), c=data/data.max(), cmap='viridis')
+ax1.scatter(r * np.sin(theta) * np.cos(phi), r * np.sin(theta) * np.sin(phi), r * np.cos(theta), c = data_normalized, cmap='viridis')
 ax1.set_xlabel('X')
 ax1.set_ylabel('Y')
 ax1.set_zlabel('Z')
 
 mappable = plt.cm.ScalarMappable(cmap='viridis')
 mappable.set_array(data)
-mappable.set_clim(0, 35)
 fig.colorbar(mappable, ax=ax1, shrink=0.5, aspect=7)
-
+ 
 ax2 = fig.add_subplot(122, projection='3d')
-ax2.plot_surface(x_grid, y_grid, z_grid, facecolors=plt.cm.viridis(fitted_grid.real/fitted_grid.real.max()), rstride=1, cstride=1, shade=False)
+ax2.plot_surface(x_grid, y_grid, z_grid, facecolors=plt.cm.viridis(fitted_grid_normalized), rstride=1, cstride=1, shade=False)
 ax2.set_xlabel('X')
 ax2.set_ylabel('Y')
 ax2.set_zlabel('Z')
 
 mappable = plt.cm.ScalarMappable(cmap='viridis')
 mappable.set_array(fitted_grid.real)
-mappable.set_clim(0, 35)
 fig.colorbar(mappable, ax=ax2, shrink=0.5, aspect=7)
 plt.show()
 
