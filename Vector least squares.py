@@ -37,7 +37,7 @@ theta_grid, phi_grid = np.meshgrid(
 # Generate a grid of points on the sphere for visualization of scalar fields
 num_plot_points_scalar = 150
 theta_grid_scalar, phi_grid_scalar = np.meshgrid(
-    np.linspace(0.01, np.pi-0.01, num_plot_points_scalar),
+    np.linspace(0.00001, np.pi-0.00001, num_plot_points_scalar),
     np.linspace(0, 2*np.pi, num_plot_points_scalar)
 )
 

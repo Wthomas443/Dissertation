@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from meteostat import Stations, Hourly
 from datetime import datetime, timedelta
 import Vector_spherical_harmonics as vsh
+from matplotlib.streamplot import StreamplotSet
+import plotly.graph_objects as go
 
 def get_weather_stations():
     stations = Stations()
@@ -85,7 +87,7 @@ nan_rows = df_merged[df_merged[['wspd', 'wdir', 'latitude', 'longitude']].isna()
 df_merged = df_merged.drop(nan_rows.index)
 
 # take a random subset of the data
-df_merged = df_merged.sample(150)
+df_merged = df_merged.sample(100, random_state=0)
 
 theta = df_merged['latitude'].values
 phi = df_merged['longitude'].values
@@ -102,9 +104,9 @@ v = u * np.sin(v)
 
 
 n = len(theta)
-r = 6378000
-max_degree = 80
-regularization_parameter = 0.3593813663804626
+r = 1
+max_degree = 16
+regularization_parameter = 0.34551072945922184
 grad = 2
 
 data = np.concatenate((u, v))
@@ -126,7 +128,7 @@ A_test = vsh.VectorDesignMatrix(theta_test, phi_test, max_degree)
 coefficients = vsh.Solve_LSQ(max_degree, data_train, A_train, regularization_parameter, grad)
 
 # Generate a grid of points on the sphere for visualization of vector field
-num_plot_points = 50
+num_plot_points = 25
 theta_grid, phi_grid = np.meshgrid(
     np.linspace(0.01, np.pi-0.01, num_plot_points),
     np.linspace(0, 2*np.pi, num_plot_points)
@@ -157,7 +159,7 @@ data_plot = vsh.convert_to_cartesian(theta_train, phi_train, data_train)
 
 fig = plt.figure(figsize=(12, 6))
 ax = fig.add_subplot(111, projection='3d')
-ax.quiver(x, y, z, data_plot[:,0].real, data_plot[:,1].real, data_plot[:,2].real, length=0.1, normalize=True)
+ax.quiver(x, y, z, data_plot[:,0].real, data_plot[:,1].real, data_plot[:,2].real, length=0.03)
 ax.set_xlabel('x')
 ax.set_ylabel('y')
 ax.set_zlabel('z')
@@ -192,6 +194,7 @@ fitted_grid = A_grid @ coefficients
 
 A_grid_scalar = vsh.VectorDesignMatrix(theta_grid_scalar.flatten(), phi_grid_scalar.flatten(), max_degree)
 fitted_grid_scalar = A_grid_scalar @ coefficients
+print(np.shape(fitted_grid_scalar))
 
 # Reshape and normalize the components in one step
 phi_component = fitted_grid_scalar[:len(theta_grid_scalar.flatten())].real.reshape(theta_grid_scalar.shape)
@@ -208,7 +211,7 @@ x_grid_scalar, y_grid_scalar, z_grid_scalar = np.sin(theta_grid_scalar) * np.cos
 # Plot the fitted data
 fig = plt.figure(figsize=(12, 6))
 ax = fig.add_subplot(111, projection='3d')
-ax.quiver(x_grid.flatten(), y_grid.flatten(), z_grid.flatten(), fitted_grid_plot[:,0].real, fitted_grid_plot[:,1].real, fitted_grid_plot[:,2].real, length=0.1, normalize=True)
+ax.quiver(x_grid.flatten(), y_grid.flatten(), z_grid.flatten(), fitted_grid_plot[:,0].real, fitted_grid_plot[:,1].real, fitted_grid_plot[:,2].real, length=0.03)
 ax.set_xlabel('x')
 ax.set_ylabel('y')
 ax.set_zlabel('z')
@@ -235,6 +238,68 @@ fig.colorbar(mappable, ax=ax2, shrink=0.5, aspect=5)
 
 plt.show()
 
+# Generate a 2D stream plot for the theta and phi components
+theta_sorted, phi_sorted = np.meshgrid(
+    np.linspace(0.01, np.pi - 0.01, num_plot_points),
+    np.linspace(0, 2 * np.pi, num_plot_points)
+)
+
+# Extract the fitted grid components for the streamplot
+u_component = fitted_grid[:len(theta_sorted.flatten())].real.reshape(theta_sorted.shape)
+v_component = fitted_grid[len(theta_sorted.flatten()):].real.reshape(theta_sorted.shape)
+
+
+res = plt.streamplot(
+    theta_sorted, phi_sorted,
+     u_component, v_component, density= 1.8
+)
+plt.xlabel('Longitude (radians)')
+plt.ylabel('Latitude (radians)')
+plt.title('2D Stream Plot of Theta and Phi Components')
+plt.grid(True)
+plt.show()
+
+lines = res.lines.get_paths()
+
+fitted_grid_scalar_plot = vsh.convert_to_cartesian(x_grid_scalar.flatten(), y_grid_scalar.flatten(), fitted_grid_scalar)
+
+magnitudes = np.linalg.norm(fitted_grid_scalar_plot, axis=1)
+magnitudes = magnitudes.reshape(theta_grid_scalar.shape)
+magnitudes_n = (magnitudes - magnitudes.min()) / (magnitudes.max() - magnitudes.min())
+
+fig = plt.figure(figsize=(12, 6))
+ax1 = fig.add_subplot(121, projection='3d')
+i=0
+for line in lines:
+    i+=1
+    theta_line = line.vertices[:, 0]
+    phi_line = line.vertices[:, 1]
+    x_line, y_line, z_line = np.sin(theta_line) * np.cos(phi_line), np.sin(theta_line) * np.sin(phi_line), np.cos(theta_line)
+    u = x_line[0] - x_line[1]
+    v = y_line[0] - y_line[1]
+    w = z_line[0] - z_line[1]
+    
+    ax1.plot(x_line, y_line, z_line, color = 'tab:blue')
+    if i%10 ==1:
+        ax1.quiver(x_line[0], y_line[0], z_line[0], u/4, v/4, w/4, length = 3, color='k')
+ax1.set_xlabel('x')
+ax1.set_ylabel('y')
+ax1.set_zlabel('z')
+
+
+ax2 = fig.add_subplot(122, projection='3d')
+ax2.plot_surface(x_grid_scalar, y_grid_scalar, z_grid_scalar, facecolors = plt.cm.viridis(magnitudes_n), rstride=1, cstride=1, shade=False)
+ax2.set_xlabel('x')
+ax2.set_ylabel('y')
+ax2.set_zlabel('z')
+mappable = plt.cm.ScalarMappable(cmap='viridis')
+mappable.set_array(magnitudes)
+fig.colorbar(mappable, ax=ax2, shrink=0.5, aspect=5)
+
+plt.show()
+
+
+
 # Compute the error
 #training error
 error = np.linalg.norm(data_train - A_train @ coefficients)
@@ -251,7 +316,7 @@ print(f"MSE: {MSE}")
 
 
 # Plot the error for increasing max degree
-max_degrees = range(0, 40)
+max_degrees = np.logspace(0, 2, 40, dtype=int)
 train_errors = []
 test_errors = []
 
@@ -271,7 +336,6 @@ plt.plot(max_degrees, np.log10(train_errors), label='Training Error')
 plt.plot(max_degrees, np.log10(test_errors), label='Test Error')
 plt.xlabel('Max Degree')
 plt.ylabel('Error')
-plt.title('Error vs Max Degree')
 plt.legend()
 plt.grid(True)
 plt.show()
@@ -312,6 +376,8 @@ plt.legend()
 plt.show()
 
 print(f'The optimal value of e is {best_e} with a test error of {min_error}')
+
+
 
 
 

@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import Spherical_harmonic_functions as sph
 from matplotlib.ticker import MaxNLocator
-
+plt.rcParams.update({'font.size': 16})
 #number of data points
 num_points = 600
 theta = np.random.uniform(0, np.pi, num_points)
@@ -85,15 +85,14 @@ plt.show()
 
 #Explore the change in error for the number of data points and the complexity of the function being approximated
 
-max_degree_list = [6, 10, 14, 18, 22, 26, 30, 34, 38, 42, 46, 50, 54, 58]
+max_degree_list = [6,10,14,18,22,26,30,34,38,42,46,50,54,58]
 # fig, ax = plt.subplots(figsize=(10, 6))
 # index = []
 # min_errors = []
-# min_points = [ 49,  129,  205,  378,  565,  831, 1091, 1429, 1840, 2284, 2744, 3120, 3584, 4096]
-# num_points_matrix = np.zeros((len(max_degree_list), 30))
-# print(min_points)
+
+# num_points_matrix = np.zeros((len(max_degree_list), 50))
 # for j, new_max_degree in enumerate(max_degree_list):
-#     num_points_list = np.logspace(np.log10(min_points[j] - 1/5 *min_points[j]), np.log10(min_points[j] + 1/5 * min_points[j]), 30).astype(int)
+#     num_points_list = np.logspace(3.4, 3.6, 50).astype(int)
 #     errors = np.zeros((len(max_degree_list), len(num_points_list)))
 #     num_points_matrix[j, :] = num_points_list
 #     for i, points in enumerate(num_points_list):
@@ -111,44 +110,39 @@ max_degree_list = [6, 10, 14, 18, 22, 26, 30, 34, 38, 42, 46, 50, 54, 58]
 #     min_error = np.min(errors[j, :])
 #     min_errors.append(min_error)
 #     index.append(np.argmin(errors[j, :]))
-#     ax.loglog(num_points_list, errors[j, :], label=f'Max Degree: {max_degree}')
+#     ax.loglog(num_points_list, errors[j, :], label=f'Max Degree: {new_max_degree}')
     
 # ax.set_xlabel('Number of Data Points', fontsize=14)
-# ax.set_ylabel('Minimum error', fontsize=14)
+# ax.set_ylabel('Error $||f - Sf||_2$', fontsize=14)
 # ax.legend(fontsize=12)
 # ax.grid(True)
 
 # plt.show()
 
 
-# print(num_points_matrix[range(0, len(max_degree_list)), index])
-# points = num_points_matrix[range(0, len(max_degree_list)), index]
+#print(num_points_matrix[range(0, len(max_degree_list)), index])
+#points = num_points_matrix[range(0, len(max_degree_list)), index]
 
 fig, ax = plt.subplots(figsize=(10, 6))
-points = [49, 122, 229, 378, 565, 831, 1106, 1429, 1841, 2253, 2745, 3210, 3845, 4456]
+points = [ 49, 122, 229, 378, 565, 831, 1106, 1429, 1841, 2253, 2745, 3210, 3845, 4456]
+print( np.sqrt(points[5] )-1)
 
-ax.plot(np.log10(points), max_degree_list)
-ax.set_xlabel('Number of Data Points', fontsize=18)
-ax.set_ylabel('Max Degree', fontsize=18)
-ax.grid(True)
-
-plt.show()
-
-fig, ax = plt.subplots(figsize=(10, 6))
-
-
-ax.plot(points, max_degree_list)
-ax.set_xlabel('Number of Data Points', fontsize=18)
-ax.set_ylabel('Max Degree', fontsize=18)
-ax.grid(True)
-
-plt.show()
-
-fig, ax = plt.subplots(figsize=(10, 6))
 
 ax.loglog(points, max_degree_list)
+ax.loglog(points , 6/7 * np.sqrt(np.array(points)), label=r'$\frac{6}{7}n^{\frac{1}{2}}$')
 ax.set_xlabel('Number of Data Points', fontsize=18)
 ax.set_ylabel('Max Degree', fontsize=18)
+ax.legend()
+ax.grid(True)
+
+plt.show()
+
+fig, ax = plt.subplots(figsize=(10, 6))
+
+ax.loglog(points, [(n + 1) ** 2 for n in max_degree_list])
+ax.loglog(points, (6/7 * np.array(points)**(1/2) +1)**2)
+ax.set_xlabel('Number of Data Points', fontsize=18)
+ax.set_ylabel('Number of basis functions', fontsize=18)
 ax.grid(True)
 
 plt.show()
