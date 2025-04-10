@@ -48,37 +48,37 @@ regularization_parameter = 0.004977023564332114
 grad = 2
 
 #Create plot to find optimum regularisation parameter
-num_folds = 10
-fold_error = np.zeros((num_folds,100))
-for i in range(num_folds):
-    np.random.seed(i)
-    test_idx = np.random.randint(0, n, int(0.2*n))
-    test_theta = theta[test_idx]
-    test_phi = phi[test_idx]
-    test_data = data[test_idx]
-    training_data = np.delete(data, test_idx)
-    training_theta = np.delete(theta, test_idx)
-    training_phi = np.delete(phi, test_idx)
-    A_training = sph.design_matrix_vectorized(training_theta, training_phi, max_degree)
-    A_test = sph.design_matrix_vectorized(test_theta, test_phi, max_degree)
-    reg_param = []
-    for idx, e in enumerate(np.logspace(-12,0,100)):
-        reg_param.append(e)
-        fitted_coefficients = sph.Solve_LSQ(max_degree, training_data, A_training, e, grad)
-        error = np.linalg.norm(test_data- A_test @ fitted_coefficients)
-        fold_error[i][idx] = error
-    plt.plot(np.log10(reg_param), np.log10(fold_error[i]), label=f'Fold {i+1}')
-    plt.xlabel('Regularization parameter $Log_{10}(\lambda)$', fontsize=16)
-    plt.ylabel('Test error $Log_{10}||f_{test}-A_{test}v||$', fontsize=16)
-    plt.grid(True)
-mean_error = (fold_error.mean(axis=0))
-min_error = np.min(mean_error)
-best_e = reg_param[np.argmin(mean_error)]
-plt.plot(np.log10(reg_param), np.log10(mean_error), label='Mean error', color='black', linewidth=3)
-plt.legend()
-plt.show()
+# num_folds = 10
+# fold_error = np.zeros((num_folds,100))
+# for i in range(num_folds):
+#     np.random.seed(i)
+#     test_idx = np.random.randint(0, n, int(0.2*n))
+#     test_theta = theta[test_idx]
+#     test_phi = phi[test_idx]
+#     test_data = data[test_idx]
+#     training_data = np.delete(data, test_idx)
+#     training_theta = np.delete(theta, test_idx)
+#     training_phi = np.delete(phi, test_idx)
+#     A_training = sph.design_matrix_vectorized(training_theta, training_phi, max_degree)
+#     A_test = sph.design_matrix_vectorized(test_theta, test_phi, max_degree)
+#     reg_param = []
+#     for idx, e in enumerate(np.logspace(-12,0,100)):
+#         reg_param.append(e)
+#         fitted_coefficients = sph.Solve_LSQ(max_degree, training_data, A_training, e, grad)
+#         error = np.linalg.norm(test_data- A_test @ fitted_coefficients)
+#         fold_error[i][idx] = error
+#     plt.plot(np.log10(reg_param), np.log10(fold_error[i]), label=f'Fold {i+1}')
+#     plt.xlabel('Regularization parameter $Log_{10}(\lambda)$', fontsize=16)
+#     plt.ylabel('Test error $Log_{10}||f_{test}-A_{test}v||$', fontsize=16)
+#     plt.grid(True)
+# mean_error = (fold_error.mean(axis=0))
+# min_error = np.min(mean_error)
+# best_e = reg_param[np.argmin(mean_error)]
+# plt.plot(np.log10(reg_param), np.log10(mean_error), label='Mean error', color='black', linewidth=3)
+# plt.legend()
+# plt.show()
 
-print(f'The optimal value of e is {best_e} with a test error of {min_error}')
+# print(f'The optimal value of e is {best_e} with a test error of {min_error}')
 
 # Calculate test error over 10 folds
 max_degrees_extended = np.arange(0, 41, 4)
@@ -98,7 +98,7 @@ for fold in range(num_folds):
     for i, L in enumerate(max_degrees_extended):
         A_training = sph.design_matrix_vectorized(training_theta, training_phi, L)
         A_test = sph.design_matrix_vectorized(test_theta, test_phi, L)
-        fitted_coefficients = sph.Solve_LSQ(L, training_data, A_training, e, grad)
+        fitted_coefficients = sph.Solve_LSQ(L, training_data, A_training, regularization_parameter, grad)
         test_error = np.linalg.norm(test_data - A_test @ fitted_coefficients)
         test_errors_extended[i, fold] = test_error
 
@@ -202,8 +202,8 @@ theta_grid, phi_grid = np.meshgrid(
 A = sph.design_matrix_vectorized(theta, phi, max_degree)
 coefficients = sph.Solve_LSQ(max_degree, data, A, regularization_parameter, grad)
 residual = np.linalg.norm(data - A @ coefficients)
-print(f"Test error: {np.linalg.norm(test_data - A_test @ coefficients)}")
-print(f"Training error: {np.linalg.norm(training_data - A_training @ coefficients)}")
+print(f"Test error: {np.sum(np.abs(test_data - A_test @ coefficients)**2)/len(test_data)}")
+print(f"Training error: {np.sum(np.abs(training_data - A_training @ coefficients)**2)/len(training_data)}")
 
 # Compute the fitted values on the grid
 A_grid = sph.design_matrix_vectorized(theta_grid.flatten(), phi_grid.flatten(), max_degree)

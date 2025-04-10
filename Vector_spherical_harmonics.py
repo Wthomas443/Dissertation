@@ -68,7 +68,7 @@ def construct_L(max_degree, power):
     idx = 0
     for l in range(1, max_degree + 1):
         for m in range(-l, l + 1):
-            L[idx][idx] = (l * (l + 1))**power
+            L[idx][idx] = (l * (l + 1))**(power+1)
             idx += 1
     return L
 
