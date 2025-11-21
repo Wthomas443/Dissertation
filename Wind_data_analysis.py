@@ -58,7 +58,7 @@ def optimize_regularization_parameter(num_folds, num_samples, num_components, ma
     plt.plot(np.log10(reg_param), np.log10(mean_error), label='Mean error', color='black', linewidth=3)
     plt.legend()
     plt.tight_layout()
-    plt.savefig(f'best_lambda_{num_components}.png')
+    plt.savefig(f'Wind_data_plots\\best_lambda_{num_components}.png')
     plt.close()
     print(f'The optimal value of e is {best_e} with a test error of {min_error}')
 
@@ -99,7 +99,7 @@ def plot_wind_data(theta_train, phi_train, data_train, n_components, r):
     ax.set_ylabel('y')
     ax.set_zlabel('z')
     fig.tight_layout()
-    fig.savefig(f'wind_data_plot_{n_components}.png')
+    fig.savefig(f'Wind_data_plots\\wind_data_plot_{n_components}.png')
     plt.close()
 
 def plot_wind_data_scalar(r, theta_train, phi_train, data_train, n_components):
@@ -134,7 +134,7 @@ def plot_wind_data_scalar(r, theta_train, phi_train, data_train, n_components):
     mappable.set_array(data_train_theta.real)
     fig.colorbar(mappable, ax=ax2, shrink=0.5, aspect=5)
     fig.tight_layout()
-    fig.savefig(f'scalar_data_components_{n_components}.png')
+    fig.savefig(f'Wind_data_plots\\scalar_data_components_{n_components}.png')
     plt.close()
 
 def plot_fitted_data(fitted_grid, theta_grid, phi_grid, r, n_components):
@@ -177,7 +177,7 @@ def plot_fitted_data(fitted_grid, theta_grid, phi_grid, r, n_components):
     ax.set_ylabel('y')
     ax.set_zlabel('z')
     fig.tight_layout()
-    fig.savefig(f'fitted_wind_data_plot_{n_components}.png')
+    fig.savefig(f'Wind_data_plots\\fitted_wind_data_plot_{n_components}.png')
     plt.close()
 
 def plot_fitted_data_scalar(theta_grid_scalar, phi_grid_scalar, r, max_degree, coefficients, n_components):
@@ -214,7 +214,7 @@ def plot_fitted_data_scalar(theta_grid_scalar, phi_grid_scalar, r, max_degree, c
     mappable.set_array(theta_component)
     fig.colorbar(mappable, ax=ax2, shrink=0.5, aspect=5)
     fig.tight_layout()
-    fig.savefig(f'fitted_scalar_data_components_{n_components}.png')
+    fig.savefig(f'Wind_data_plots\\fitted_scalar_data_components_{n_components}.png')
     plt.close()
 
 def streamline_plot(fitted_data, num_components, num_plot_points, r=1):
@@ -243,7 +243,7 @@ def streamline_plot(fitted_data, num_components, num_plot_points, r=1):
     plt.ylabel('Latitude (radians)')
     plt.title('2D Stream Plot of Theta and Phi Components')
     plt.grid(True)
-    plt.savefig(f'streamplot_2D_{num_components}.png')
+    plt.savefig(f'Wind_data_plots\\streamplot_2D_{num_components}.png')
     plt.close()
     #extract the lines from the streamplot 
     lines = res.lines.get_paths()
@@ -267,7 +267,7 @@ def streamline_plot(fitted_data, num_components, num_plot_points, r=1):
     ax1.set_xlabel('x')
     ax1.set_ylabel('y')
     ax1.set_zlabel('z')
-    plt.savefig(f'streamplot_3D_{num_components}.png')
+    plt.savefig(f'Wind_data_plots\\streamplot_3D_{num_components}.png')
     plt.close()
 
 
@@ -288,6 +288,10 @@ theta_grid_scalar, phi_grid_scalar = np.meshgrid(
 max_degree = 30
 grad = 2
 r = 6378000  # Earth radius in meters
+#Load raw wind data
+data, theta, phi = np.load(f'wind_data.npz')['data'][:, 24], np.load(f'wind_data.npz')['theta'], np.load(f'wind_data.npz')['phi']
+
+plot_wind_data(theta, phi, data, 'raw_data', r)
 
 num_components = [1, 2, 3, 4]
 
@@ -314,9 +318,9 @@ for n_components in num_components:
     print('Plotting data...')
     # Plot the wind data
 
-    plot_wind_data(theta_train, phi_train, data_train, n_components, r)
+    plot_wind_data(theta, phi, data, n_components, r)
 
-    plot_wind_data_scalar(r, theta_train, phi_train, data_train, n_components)
+    plot_wind_data_scalar(r, theta, phi, data, n_components)
 
     print('Fitting model and plotting results...')
     #Fit the model and plot results
@@ -348,8 +352,8 @@ plt.ylabel('Mean Squared Error', fontsize=16)
 plt.legend()
 plt.grid(True)
 fig.tight_layout()
-fig.savefig('train_test_errors.png')
-plt.show()
+fig.savefig('Wind_data_plots\\train_test_errors.png')
+plt.close()
 
 
 
