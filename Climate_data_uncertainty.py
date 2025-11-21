@@ -29,6 +29,7 @@ def convert_longitude(long):
     else: raise ValueError("Invalid longitude format")
 
 def uncertainty_measure_LOO(e, grad, theta, phi, data, max_degree, num_plot_points):
+    
     # Use leave one out residuals to train GPR
     loo = LeaveOneOut()
     all_residuals = []
@@ -71,9 +72,7 @@ def uncertainty_measure_LOO(e, grad, theta, phi, data, max_degree, num_plot_poin
 
 
 def uncertainty_measure(e, grad, train_idx, val_idx, theta, phi, data, max_degree, num_plot_points):
-    """
-    Improved version using validation residuals
-    """
+   
     # Split data
     train_theta, train_phi, train_data = theta[train_idx], phi[train_idx], data[train_idx]
     val_theta, val_phi, val_data = theta[val_idx], phi[val_idx], data[val_idx]
