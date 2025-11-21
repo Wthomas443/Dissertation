@@ -29,7 +29,7 @@ def convert_longitude(long):
     else: raise ValueError("Invalid longitude format")
 
 def uncertainty_measure_LOO(e, grad, theta, phi, data, max_degree, num_plot_points):
-    
+
     # Use leave one out residuals to train GPR
     loo = LeaveOneOut()
     all_residuals = []
@@ -200,7 +200,31 @@ print(f"\nTraining final model with best parameters: grad={best_grad}, e={best_r
 A = sph.design_matrix_vectorized(theta, phi, max_degree)
 coefficients = sph.Solve_LSQ(max_degree, data, A, best_reg_param, best_grad)
 
-# Predict on training data for residual calculation
+all_val_residuals = []
+all_val_theta = []
+all_val_phi = []
+
+for train_idx, val_idx in kf.split(data):
+
+    # Train 
+    A_train = sph.design_matrix_vectorized(theta[train_idx], phi[train_idx], max_degree)
+    coefficients_fold = sph.Solve_LSQ(max_degree, data[train_idx], A_train, best_reg_param, best_grad)
+    
+    # Predict 
+    A_val = sph.design_matrix_vectorized(theta[val_idx], phi[val_idx], max_degree)
+    val_predictions = A_val @ coefficients_fold
+    val_residuals = (data[val_idx] - val_predictions).real
+    
+    all_val_residuals.extend(val_residuals)
+    all_val_theta.extend(theta[val_idx])
+    all_val_phi.extend(phi[val_idx])
+
+all_val_residuals = np.array(all_val_residuals)
+all_val_theta = np.array(all_val_theta)
+all_val_phi = np.array(all_val_phi)
+
+A = sph.design_matrix_vectorized(theta, phi, max_degree)
+coefficients = sph.Solve_LSQ(max_degree, data, A, best_reg_param, best_grad)
 predictions = A @ coefficients
 residuals = (data - predictions).real
 
@@ -217,17 +241,24 @@ z_grid = r * np.cos(theta_grid)
 
 print("Preparing data for GPR...")
 # Prepare data for GPR
-X = np.column_stack((theta, phi))
-X_grid_points = np.column_stack((theta_grid.flatten(), phi_grid.flatten()))
+X = np.column_stack((all_val_theta, all_val_phi))
+y = all_val_residuals
+
+scaler = preprocessing.StandardScaler()
+X_scaled = scaler.fit_transform(X)
 
 print("Fitting Gaussian Process Regressor...")
 # Initialize and fit GP model
-kernel = Matern(nu=1.5, length_scale=1.0)
+kernel = Matern(nu=1.5, length_scale=1.0, length_scale_bounds=(1e-6, 1e5)) 
 gp = GaussianProcessRegressor(kernel=kernel, n_restarts_optimizer=10, alpha=1e-8, normalize_y=True)
-gp.fit(X, residuals)
+gp.fit(X_scaled, y)
+
+X_grid_points = np.column_stack((theta_grid.flatten(), phi_grid.flatten()))
+X_grid_points = scaler.transform(X_grid_points)
 
 y_mean, y_std = gp.predict(X_grid_points, return_std=True)
 uncertainty = 2 * y_std
+uncertainty = uncertainty.reshape(theta_grid.shape)
 
 print("Creating visualization...")
 
@@ -247,7 +278,7 @@ fig.colorbar(plt.cm.ScalarMappable(norm=norm_temp, cmap='viridis'),
 ax3 = fig.add_subplot(122, projection='3d')
 norm_uncertainty_plot = plt.Normalize(vmin=np.min(uncertainty), vmax=np.max(uncertainty))
 surf3 = ax3.plot_surface(x_grid, y_grid, z_grid,
-                        facecolors=plt.cm.plasma(norm_uncertainty_plot(uncertainty.reshape(x_grid.shape))),
+                        facecolors=plt.cm.plasma(norm_uncertainty_plot(uncertainty)),
                         rstride=2, cstride=2, shade=False)
 ax3.set_title('GPR Uncertainty')
 fig.colorbar(plt.cm.ScalarMappable(norm=norm_uncertainty_plot, cmap='plasma'), 
